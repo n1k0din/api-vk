@@ -1,8 +1,9 @@
 import os.path
+from os import getenv
+
 import urllib3
 import requests
-
-from pprint import pprint
+from dotenv import load_dotenv
 
 
 def download_img(url, filename, images_dir='.'):
@@ -22,15 +23,17 @@ def download_xkcd_comics(comics_id):
     response.raise_for_status()
 
     img_url = response.json()['img']
+    print(response.json()['alt'])
 
-    download_img(img_url, 'image.png')
-
-
+    # download_img(img_url, 'image.png')
 
 
 def main():
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    pprint(download_xkcd_comics(353))
+    load_dotenv('.env')
+    vk_app_client_id = getenv('VK_APP_CLIENT_ID')
+
+    download_xkcd_comics(353)
 
 
 if __name__ == '__main__':

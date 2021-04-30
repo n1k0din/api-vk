@@ -1,3 +1,4 @@
 .sonarlint
 /venv
 *.png
+.env
