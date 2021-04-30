@@ -1,5 +1,6 @@
+import os
 import os.path
-from os import getenv
+from random import randint
 from urllib.parse import urljoin
 
 import urllib3
@@ -104,15 +105,16 @@ def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_
         VK_API_VERSION,
     )
 
+    os.remove(comics_filename)
 
-def download_img(url, filename, images_dir='.'):
-    full_path = os.path.join(images_dir, filename)
 
-    response = requests.get(url, verify=False)
+def get_last_xkcd_comics_id():
+    url = 'http://xkcd.com/info.0.json'
+
+    response = requests.get(url)
     response.raise_for_status()
 
-    with open(full_path, 'wb') as file:
-        file.write(response.content)
+    return response.json()['num']
 
 
 def download_xkcd_comics(comics_id):
@@ -128,14 +130,27 @@ def download_xkcd_comics(comics_id):
     return filename, response.json()['alt']
 
 
+def download_img(url, filename, images_dir='.'):
+    full_path = os.path.join(images_dir, filename)
+
+    response = requests.get(url, verify=False)
+    response.raise_for_status()
+
+    with open(full_path, 'wb') as file:
+        file.write(response.content)
+
+
 def main():
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     load_dotenv('.env')
-    vk_app_client_id = getenv('VK_APP_CLIENT_ID')
-    vk_access_token = getenv('VK_ACCESS_TOKEN')
-    vk_group_id = getenv('VK_GROUP_ID')
+    vk_app_client_id = os.getenv('VK_APP_CLIENT_ID')
+    vk_access_token = os.getenv('VK_ACCESS_TOKEN')
+    vk_group_id = os.getenv('VK_GROUP_ID')
 
-    post_xkcd_comics_to_vk_wall(354, vk_group_id, vk_access_token, VK_API_VERSION)
+    last_comics_id = get_last_xkcd_comics_id()
+    comics_id = randint(1, last_comics_id)
+
+    post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, VK_API_VERSION)
 
 
 if __name__ == '__main__':
