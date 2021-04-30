@@ -3,11 +3,9 @@ import os.path
 from random import randint
 from urllib.parse import urljoin
 
-import urllib3
 import requests
+import urllib3
 from dotenv import load_dotenv
-
-from pprint import pprint
 
 VK_API_VERSION = '5.130'
 VK_API_URL = 'https://api.vk.com/'
@@ -38,7 +36,7 @@ def upload_img_to_vk(upload_url, img_filename='image.png'):
         return response_data['server'], response_data['photo'], response_data['hash']
 
 
-def save_vk_wall_img(group_id, photo, server_id, photo_hash, access_token, api_version):
+def save_vk_wall_img(group_id, server_id, photo, photo_hash, access_token, api_version):
     url = urljoin(VK_API_URL, 'method/photos.saveWallPhoto')
     params = {
         'group_id': group_id,
@@ -50,7 +48,7 @@ def save_vk_wall_img(group_id, photo, server_id, photo_hash, access_token, api_v
     }
 
     response = requests.post(url, params=params)
-    response.raise_for_status
+    response.raise_for_status()
 
     response_data = response.json()['response'][0]
 
@@ -87,11 +85,13 @@ def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_
         vk_access_token,
         vk_api_version)
 
-    server_id, photo, hash = upload_img_to_vk(server_url, comics_filename)
+    server_id, vk_photo, hash = upload_img_to_vk(server_url, comics_filename)
 
     img_media_id, img_owner_id = save_vk_wall_img(
-        vk_group_id, photo,
-        server_id, hash,
+        vk_group_id,
+        server_id,
+        vk_photo,
+        hash,
         vk_access_token,
         vk_api_version,
     )
@@ -143,7 +143,6 @@ def download_img(url, filename, images_dir='.'):
 def main():
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     load_dotenv('.env')
-    vk_app_client_id = os.getenv('VK_APP_CLIENT_ID')
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     vk_group_id = os.getenv('VK_GROUP_ID')
 
