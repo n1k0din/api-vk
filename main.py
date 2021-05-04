@@ -118,7 +118,7 @@ def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_
         img_owner_id,
         comics_comment,
         vk_access_token,
-        VK_API_VERSION,
+        vk_api_version,
     )
 
 
