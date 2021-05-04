@@ -8,6 +8,17 @@ from dotenv import load_dotenv
 
 VK_API_VERSION = '5.130'
 VK_API_URL = 'https://api.vk.com/'
+TEMP_IMAGES_EXT = '.png'
+
+
+def check_vk_api_error(response):
+    vk_answer = response.json()
+
+    if 'error' in vk_answer:
+        raise requests.HTTPError('Error in VK answer, check token, method and other params')
+
+    if vk_answer.get('photo') == '[]':
+        raise requests.HTTPError('VK photo not uploaded!')
 
 
 def get_vk_group_upload_server_album_user(group_id, access_token, api_version):
@@ -17,6 +28,7 @@ def get_vk_group_upload_server_album_user(group_id, access_token, api_version):
 
     response = requests.get(url, params=params)
     response.raise_for_status()
+    check_vk_api_error(response)
 
     upload_params = response.json()['response']
 
@@ -28,6 +40,7 @@ def upload_img_to_vk(upload_url, img_filename='image.png'):
         files = {'photo': file}
         response = requests.post(upload_url, files=files)
         response.raise_for_status()
+        check_vk_api_error(response)
 
         uploaded_photo_params = response.json()
         return (
@@ -50,6 +63,7 @@ def save_vk_wall_img(group_id, server_id, photo, photo_hash, access_token, api_v
 
     response = requests.post(url, params=params)
     response.raise_for_status()
+    check_vk_api_error(response)
 
     saved_photo_params = response.json()['response'][0]
 
@@ -76,6 +90,7 @@ def post_img_to_vk_wall(
 
     response = requests.post(url, params=params)
     response.raise_for_status()
+    check_vk_api_error(response)
 
 
 def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_version):
@@ -105,8 +120,6 @@ def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_
         vk_access_token,
         VK_API_VERSION,
     )
-
-    os.remove(comics_filename)
 
 
 def get_last_xkcd_comics_id():
@@ -142,6 +155,13 @@ def download_img(url, filename, images_dir='.'):
         file.write(response.content)
 
 
+def delete_files_by_ext(file_ext, dir='.'):
+    files = os.listdir(dir)
+    for file in files:
+        if file.endswith(file_ext):
+            os.remove(os.path.join(dir, file))
+
+
 def main():
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     load_dotenv('.env')
@@ -151,7 +171,12 @@ def main():
     last_comics_id = get_last_xkcd_comics_id()
     comics_id = randint(1, last_comics_id)
 
-    post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, VK_API_VERSION)
+    try:
+        post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, VK_API_VERSION)
+    except requests.HTTPError as e:
+        print(e)
+    finally:
+        delete_files_by_ext(TEMP_IMAGES_EXT)
 
 
 if __name__ == '__main__':
