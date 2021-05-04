@@ -18,21 +18,23 @@ def get_vk_group_upload_server_album_user(group_id, access_token, api_version):
     response = requests.get(url, params=params)
     response.raise_for_status()
 
-    response_data = response.json()['response']
+    upload_params = response.json()['response']
 
-    return response_data['upload_url'], response_data['album_id'], response_data['user_id']
+    return upload_params['upload_url'], upload_params['album_id'], upload_params['user_id']
 
 
 def upload_img_to_vk(upload_url, img_filename='image.png'):
     with open(img_filename, 'rb') as file:
-        files = {
-            'photo': file,
-        }
+        files = {'photo': file}
         response = requests.post(upload_url, files=files)
         response.raise_for_status()
 
-        response_data = response.json()
-        return response_data['server'], response_data['photo'], response_data['hash']
+        uploaded_photo_params = response.json()
+        return (
+            uploaded_photo_params['server'],
+            uploaded_photo_params['photo'],
+            uploaded_photo_params['hash'],
+        )
 
 
 def save_vk_wall_img(group_id, server_id, photo, photo_hash, access_token, api_version):
@@ -49,9 +51,9 @@ def save_vk_wall_img(group_id, server_id, photo, photo_hash, access_token, api_v
     response = requests.post(url, params=params)
     response.raise_for_status()
 
-    response_data = response.json()['response'][0]
+    saved_photo_params = response.json()['response'][0]
 
-    return response_data['id'], response_data['owner_id']
+    return saved_photo_params['id'], saved_photo_params['owner_id']
 
 
 def post_img_to_vk_wall(
@@ -84,13 +86,13 @@ def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_
         vk_access_token,
         vk_api_version)
 
-    server_id, vk_photo, hash = upload_img_to_vk(server_url, comics_filename)
+    server_id, vk_photo, photo_hash = upload_img_to_vk(server_url, comics_filename)
 
     img_media_id, img_owner_id = save_vk_wall_img(
         vk_group_id,
         server_id,
         vk_photo,
-        hash,
+        photo_hash,
         vk_access_token,
         vk_api_version,
     )
@@ -122,11 +124,12 @@ def download_xkcd_comics(comics_id):
     response = requests.get(url)
     response.raise_for_status()
 
-    img_url = response.json()['img']
+    comics_metadata = response.json()
+    img_url = comics_metadata['img']
     filename = f'xkcd_{comics_id}.png'
     download_img(img_url, filename)
 
-    return filename, response.json()['alt']
+    return filename, comics_metadata['alt']
 
 
 def download_img(url, filename, images_dir='.'):
