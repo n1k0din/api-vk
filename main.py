@@ -8,11 +8,9 @@ from dotenv import load_dotenv
 
 VK_API_VERSION = '5.130'
 VK_API_URL = 'https://api.vk.com/'
-TEMP_IMAGES_EXT = '.png'
 
 
-def check_vk_api_error(response):
-    vk_answer = response.json()
+def check_vk_api_error(vk_answer):
 
     if 'error' in vk_answer:
         raise requests.HTTPError('Error in VK answer, check token, method and other params')
@@ -28,9 +26,11 @@ def get_vk_group_upload_server_album_user(group_id, access_token, api_version):
 
     response = requests.get(url, params=params)
     response.raise_for_status()
-    check_vk_api_error(response)
 
-    upload_params = response.json()['response']
+    vk_answer = response.json()
+    check_vk_api_error(vk_answer)
+
+    upload_params = vk_answer['response']
 
     return upload_params['upload_url'], upload_params['album_id'], upload_params['user_id']
 
@@ -40,14 +40,11 @@ def upload_img_to_vk(upload_url, img_filename='image.png'):
         files = {'photo': file}
         response = requests.post(upload_url, files=files)
         response.raise_for_status()
-        check_vk_api_error(response)
 
-        uploaded_photo_params = response.json()
-        return (
-            uploaded_photo_params['server'],
-            uploaded_photo_params['photo'],
-            uploaded_photo_params['hash'],
-        )
+        vk_answer = response.json()
+        check_vk_api_error(vk_answer)
+
+        return vk_answer['server'], vk_answer['photo'], vk_answer['hash']
 
 
 def save_vk_wall_img(group_id, server_id, photo, photo_hash, access_token, api_version):
@@ -63,9 +60,11 @@ def save_vk_wall_img(group_id, server_id, photo, photo_hash, access_token, api_v
 
     response = requests.post(url, params=params)
     response.raise_for_status()
-    check_vk_api_error(response)
 
-    saved_photo_params = response.json()['response'][0]
+    vk_answer = response.json()
+    check_vk_api_error(vk_answer)
+
+    saved_photo_params = vk_answer['response'][0]
 
     return saved_photo_params['id'], saved_photo_params['owner_id']
 
@@ -90,16 +89,22 @@ def post_img_to_vk_wall(
 
     response = requests.post(url, params=params)
     response.raise_for_status()
-    check_vk_api_error(response)
+    check_vk_api_error(response.json())
 
 
-def post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, vk_api_version):
-    comics_filename, comics_comment = download_xkcd_comics(comics_id)
+def post_xkcd_comics_to_vk_wall(
+    comics_filename,
+    comics_comment,
+    vk_group_id,
+    vk_access_token,
+    vk_api_version,
+):
 
     server_url, _album, _user = get_vk_group_upload_server_album_user(
         vk_group_id,
         vk_access_token,
-        vk_api_version)
+        vk_api_version
+    )
 
     server_id, vk_photo, photo_hash = upload_img_to_vk(server_url, comics_filename)
 
@@ -155,13 +160,6 @@ def download_img(url, filename, images_dir='.'):
         file.write(response.content)
 
 
-def delete_files_by_ext(file_ext, dir='.'):
-    files = os.listdir(dir)
-    for file in files:
-        if file.endswith(file_ext):
-            os.remove(os.path.join(dir, file))
-
-
 def main():
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     load_dotenv('.env')
@@ -172,14 +170,23 @@ def main():
     comics_id = randint(1, last_comics_id)
 
     try:
-        post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, VK_API_VERSION)
+        comics_filename, comics_comment = download_xkcd_comics(comics_id)
+
+        post_xkcd_comics_to_vk_wall(
+            comics_filename,
+            comics_comment,
+            vk_group_id,
+            vk_access_token,
+            VK_API_VERSION,
+        )
+
     except requests.HTTPError as e:
         print('HTTP error: ', e)
     finally:
         try:
-            delete_files_by_ext(TEMP_IMAGES_EXT)
+            os.remove(comics_filename)
         except OSError:
-            print('Error deleting temp files')
+            print('Error deleting temp file')
 
 
 if __name__ == '__main__':
