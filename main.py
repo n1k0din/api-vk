@@ -1,5 +1,4 @@
 import os
-import os.path
 from random import randint
 from urllib.parse import urljoin
 
