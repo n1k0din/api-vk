@@ -174,9 +174,12 @@ def main():
     try:
         post_xkcd_comics_to_vk_wall(comics_id, vk_group_id, vk_access_token, VK_API_VERSION)
     except requests.HTTPError as e:
-        print(e)
+        print('HTTP error: ', e)
     finally:
-        delete_files_by_ext(TEMP_IMAGES_EXT)
+        try:
+            delete_files_by_ext(TEMP_IMAGES_EXT)
+        except OSError:
+            print('Error deleting temp files')
 
 
 if __name__ == '__main__':
